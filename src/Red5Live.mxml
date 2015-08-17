@@ -25,12 +25,24 @@
 			private var mic:Microphone;
 			private var vi:Video=new Video;
 
+			private var serverPath:String = "";
+			private var streamName:String = "";
+			
 			private function init():void
 			{
+				if(!loaderInfo.parameters.hasOwnProperty("server") || !loaderInfo.parameters.hasOwnProperty("stream"))
+				{
+					Alert.show("参数错误");
+					panelId.enabled = false;
+					return;
+				}
+				serverPath = this.loaderInfo.parameters.server;
+				streamName = this.loaderInfo.parameters.stream;
+				
 				var cr:Copyright=new Copyright(this);
 				
-				ti.text=Statics.serverIP;
-				ti.enabled=false;
+				ti.text=serverPath;
+				ti.editable = false;
 
 				stopBtn.mouseEnabled=false;
 
@@ -43,7 +55,8 @@
 
 			private function publishHandler(event:MouseEvent):void
 			{
-				nc.connect(Statics.streamServerPath());
+//				nc.connect(Statics.streamServerPath());
+				nc.connect(serverPath);
 			}
 
 			private function stopHandler(event:MouseEvent):void
@@ -108,7 +121,8 @@
 						ns.attachAudio(mic);
 
 						//ns.publish(Statics.streamNAME, "record");
-						ns.publish(Statics.streamNAME, "append");
+//						ns.publish(Statics.streamNAME, "append");
+						ns.publish(streamName);
 
 						vi.width=Statics.clientWidth;
 						vi.height=Statics.clientHeight;
@@ -168,6 +182,7 @@
 
 	<s:Panel x="100"
 			 y="320"
+			 id="panelId"
 			 width="600"
 			 height="150"
 			 title="直播发布">

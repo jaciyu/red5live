@@ -7,8 +7,8 @@ package
 
 	public class Copyright
 	{
-		private var myName:String="娱乐江湖 - 网络直播"
-		private var myUrl:String="http://www.myyule.com/"
+		private var myName:String=""
+		private var myUrl:String=""
 		private var target:InteractiveObject
 
 		public function Copyright(target:InteractiveObject)
