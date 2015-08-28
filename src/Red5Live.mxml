@@ -3,7 +3,7 @@
 			   xmlns:s="library://ns.adobe.com/flex/spark"
 			   xmlns:mx="library://ns.adobe.com/flex/mx"
 			   minWidth="800"
-			   minHeight="500"
+			   minHeight="550"
 			   applicationComplete="init()">
 	<fx:Declarations>
 		<!-- 将非可视元素（例如服务、值对象）放在此处 -->
@@ -15,7 +15,8 @@
 			import flash.media.Microphone;
 			import flash.net.NetConnection;
 			import flash.net.NetStream;
-
+			
+			import mx.collections.ArrayCollection;
 			import mx.controls.Alert;
 
 
@@ -27,6 +28,8 @@
 
 			private var serverPath:String = "";
 			private var streamName:String = "";
+			
+			private const checker:Timer = new Timer(1000);
 			
 			private function init():void
 			{
@@ -45,16 +48,28 @@
 				ti.editable = false;
 
 				stopBtn.mouseEnabled=false;
+				stopBtn.alpha=.5;
 
 				nc=new NetConnection();
 				nc.addEventListener(NetStatusEvent.NET_STATUS, connectServerHander);
 				nc.addEventListener(SecurityErrorEvent.SECURITY_ERROR, securityErrorHandler);
 
 				nc.client=this;
+				
+				checker.addEventListener(TimerEvent.TIMER, checkHandler);
+				
+				ddlCam.dataProvider = new ArrayCollection(Camera.names);
+				ddlMic.dataProvider = new ArrayCollection(Microphone.names);
 			}
 
 			private function publishHandler(event:MouseEvent):void
 			{
+				if(ddlCam.selectedIndex<0 || ddlMic.selectedIndex<0)
+				{
+					Alert.show("请先选择摄像头和麦克风！");
+					return;
+				}
+				
 //				nc.connect(Statics.streamServerPath());
 				nc.connect(serverPath);
 			}
@@ -62,7 +77,10 @@
 			private function stopHandler(event:MouseEvent):void
 			{
 				event.target.mouseEnabled=false;
+				event.target.alpha=.5;
 
+				checker.stop();
+				
 				ns.close();
 				vi.attachCamera(null);
 				videoDisplay.removeChild(vi);
@@ -77,26 +95,34 @@
 				nc.close();
 
 				publishBtn.mouseEnabled=true;
+				publishBtn.alpha = 1;
 				stopBtn.mouseEnabled=false;
+				stopBtn.alpha = .5;
 				
 				qualityInput.enabled = true;
 				bandwidthInput.enabled = true;
 				fpsInput.enabled = true;
+				ddlMic.enabled = true;
+				ddlCam.enabled = true;
 			}
 
+			private function checkHandler(event:TimerEvent):void
+			{
+				if(mic)
+				{
+					trace(mic.activityLevel);
+				}
+			}
+			
 			private function connectServerHander(evt:NetStatusEvent):void
 			{
-				//Test.t(evt.info.code);
-
 				if (evt.info.code == "NetConnection.Connect.Success")
 				{
-					cam=Camera.getCamera();
-					mic=Microphone.getMicrophone();
+					cam=Camera.getCamera(ddlCam.selectedIndex.toString());
+					mic=Microphone.getMicrophone(ddlMic.selectedIndex);
 
 					if (cam != null && mic != null)
 					{
-						
-						
 						//要将删除的帧数降至最低（即使这意味着减小图像大小），请为 favorArea 参数传递 false。
 						//cam.setMode(Statics.serverWidth, Statics.serverHeight, 8, false);
 						cam.setMode(Statics.serverWidth, Statics.serverHeight, int(fpsInput.text), false);
@@ -111,9 +137,11 @@
 
 						//Test.t(mic.activityLevel);
 						mic.setUseEchoSuppression(false); //回声
-						mic.setLoopBack(false); //传送至本地扬声器 true
+						mic.setLoopBack(true); //传送至本地扬声器 true
 						mic.setSilenceLevel(50, 2000); // 0~100，100完全停止麦克风检测静音，从而不发送activity 事件，0则细微的声音也会捕获； 0~2000毫秒，判断声音停止时间。
 						mic.gain=100; //麦克风放大信号的程度。有效值为 0 到 100。默认值为 50。
+						
+						
 
 						ns=new NetStream(nc);
 						ns.addEventListener(NetStatusEvent.NET_STATUS, connectServerHander);
@@ -131,11 +159,17 @@
 						videoDisplay.addChild(vi);
 
 						publishBtn.mouseEnabled=false;
+						publishBtn.alpha=.5;
 						stopBtn.mouseEnabled=true;
+						stopBtn.alpha=1;
 						
 						qualityInput.enabled = false;
 						bandwidthInput.enabled = false;
 						fpsInput.enabled = false;
+						ddlMic.enabled = false;
+						ddlCam.enabled = false;
+						
+						checker.start();
 
 					}
 					else
@@ -184,7 +218,7 @@
 			 y="320"
 			 id="panelId"
 			 width="600"
-			 height="150"
+			 height="200"
 			 title="直播发布">
 
 		<s:Group width="250"
@@ -235,11 +269,28 @@
 						 text="8" restrict="0-9"/>
 		</s:Group>
 
-
+		<s:Group x="10" y="70">
+			<s:Label text="摄像头"
+					 y="5"/>
+			<s:DropDownList id="ddlCam"
+							width="150"
+							x="120"
+							labelField="label">
+			</s:DropDownList>
+		</s:Group>
+		<s:Group x="330" y="70">
+			<s:Label text="麦克风"
+					 y="5"/>
+			<s:DropDownList id="ddlMic"
+							width="150"
+							x="100"
+							labelField="label">
+			</s:DropDownList>
+		</s:Group>
 
 		<s:Group width="500"
 				 x="100"
-				 y="80">
+				 y="120">
 			<s:Button id="publishBtn"
 					  label="发布"
 					  click="publishHandler(event)"
